@@ -5,7 +5,13 @@ description = "qBittorrent Automatically Updates Trackers"
 authors = [
     { name = "KotaHv", email = "92137267+KotaHv@users.noreply.github.com" },
 ]
-dependencies = []
+dependencies = [
+    "qbittorrent-api>=2024.1.58",
+    "httpx>=0.26.0",
+    "loguru>=0.7.2",
+    "pydantic-settings>=2.1.0",
+    "pydantic>=2.6.1",
+]
 readme = "README.md"
 requires-python = ">= 3.8"
 
