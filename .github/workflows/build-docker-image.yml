@@ -5,7 +5,7 @@ on:
       - v*
 
 env:
-  IMAGE_NAME: qBitTrackerUpdater
+  IMAGE_NAME: qb-tracker-update
 
 jobs:
   build:
