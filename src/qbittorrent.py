@@ -11,6 +11,12 @@ class qBittorrent:
         self.client = qbittorrentapi.Client(
             host=host, username=username, password=password
         )
+        self.login()
+        logger.success("qBittorrent authentication successful.")
+
+    @retry
+    def login(self):
+        self.client.auth_log_in()
 
     @retry
     def add_trackers_for_downloading(self, trackers: Iterable[str]):
@@ -21,3 +27,10 @@ class qBittorrent:
     @retry
     def add_trackers_for_preferences(self, trackers: Iterable[str]):
         self.client.app_set_preferences({"add_trackers": "\n".join(trackers)})
+
+    @retry
+    def get_trackers(self):
+        preferences = self.client.app_preferences()
+        trackers = preferences.add_trackers
+        trackers = trackers.split("\n")
+        return trackers
