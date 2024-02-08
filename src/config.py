@@ -7,7 +7,7 @@ from pydantic_settings import (
     EnvSettingsSource,
     DotEnvSettingsSource,
 )
-from pydantic import BeforeValidator, AnyUrl, AnyHttpUrl, SecretStr
+from pydantic import BeforeValidator, AnyUrl, AnyHttpUrl, SecretStr, AfterValidator
 from pydantic.fields import FieldInfo
 
 
@@ -32,11 +32,17 @@ class MyDotEnvSettingsSource(DotEnvSettingsSource, MyEnvSettingsSource):
 
 class Settings(BaseSettings):
     interval: int | float = 60 * 60
-    trackers_url: List[AnyHttpUrl] = [
+    trackers_url: Annotated[
+        List[AnyHttpUrl],
+        AfterValidator(lambda urls: [url.unicode_string() for url in urls]),
+    ] = [
         "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt",
         "https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/best.txt",
     ]
-    trackers: List[AnyUrl] = []
+    trackers: Annotated[
+        List[AnyUrl],
+        AfterValidator(lambda urls: [url.unicode_string() for url in urls]),
+    ] = []
     log_level: Annotated[
         Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"],
         BeforeValidator(lambda s: s.upper()),
@@ -44,6 +50,8 @@ class Settings(BaseSettings):
     qb_host: str = "localhost:8080"
     qb_username: str = "admin"
     qb_password: SecretStr = "adminadmin"
+
+    debug: bool = False
 
     model_config = SettingsConfigDict(env_file=".env")
 
