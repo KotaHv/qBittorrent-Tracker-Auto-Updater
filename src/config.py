@@ -7,7 +7,7 @@ from pydantic_settings import (
     EnvSettingsSource,
     DotEnvSettingsSource,
 )
-from pydantic import BeforeValidator, AnyUrl, AnyHttpUrl
+from pydantic import BeforeValidator, AnyUrl, AnyHttpUrl, SecretStr
 from pydantic.fields import FieldInfo
 from loguru import logger
 
@@ -42,6 +42,9 @@ class Settings(BaseSettings):
         Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"],
         BeforeValidator(lambda s: s.upper()),
     ] = "INFO"
+    qb_host: str = "localhost:8080"
+    qb_username: str = "admin"
+    qb_password: SecretStr = "adminadmin"
 
     model_config = SettingsConfigDict(env_file=".env")
 
