@@ -9,7 +9,6 @@ from pydantic_settings import (
 )
 from pydantic import BeforeValidator, AnyUrl, AnyHttpUrl, SecretStr
 from pydantic.fields import FieldInfo
-from loguru import logger
 
 
 class MyEnvSettingsSource(EnvSettingsSource):
