@@ -66,4 +66,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-logger.debug(settings)
