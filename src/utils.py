@@ -4,6 +4,7 @@ from functools import wraps
 from loguru import logger
 
 from exception import RetryError
+from config import settings
 
 
 def retry(_func=None, *, retry_count: int = 5):
@@ -18,9 +19,13 @@ def retry(_func=None, *, retry_count: int = 5):
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
+                    e = f"{func.__module__}:{func.__qualname__} - {e}"
                     attempts += 1
                     if attempts >= retry_count:
-                        logger.exception(e)
+                        if settings.debug:
+                            logger.exception(e)
+                        else:
+                            logger.error(e)
                         raise RetryError(e)
                     logger.debug(e)
                     time.sleep(wait_time)
