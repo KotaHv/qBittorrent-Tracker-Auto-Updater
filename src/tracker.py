@@ -24,7 +24,7 @@ class Tracker:
         self.custom_trackers = set(trackers)
         self.urls = trackers_url
         self.old_trackers = set(self.qb.get_trackers())
-        logger.trace(f"trackers cache: {self.old_trackers}")
+        logger.trace(f"Trackers cache: {self.old_trackers}")
 
     def _get_trackers(self, url: str) -> List[str]:
         res = self.req.get(url)
@@ -44,6 +44,12 @@ class Tracker:
         if trackers == self.old_trackers:
             logger.debug("Trackers have not changed.")
             return
+        rm_trackers = self.old_trackers - trackers
+        if rm_trackers:
+            logger.success(f"Delete trackers: {rm_trackers}")
+        add_trackers = trackers - self.old_trackers
+        if add_trackers:
+            logger.success(f"Add trackers: {add_trackers}")
         self.qb.add_trackers_for_downloading(trackers)
         self.qb.add_trackers_for_preferences(trackers)
         self.old_trackers = trackers
