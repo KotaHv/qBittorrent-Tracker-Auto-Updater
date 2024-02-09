@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  qb-tracker-update:
+    image: ghcr.io/kotahv/qb-tracker-update:latest
+    container_name: qb-tracker-update
+    environment:
+      # - trackers=
+      # - trackers_url=https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt\nhttps://raw.githubusercontent.com/XIU2/TrackersListCollection/master/best.txt
+      - qb_host=host # Default: localhost:8080
+      - qb_username=username # Default: admin
+      - qb_password=pwd # Default: adminadmin
+      # - log_level=info
+      # - interval=3600
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
