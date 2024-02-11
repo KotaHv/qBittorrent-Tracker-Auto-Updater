@@ -51,6 +51,7 @@ class Tracker:
         if add_trackers:
             logger.success(f"Add trackers: {add_trackers}")
         self.qb.add_trackers_for_downloading(trackers)
+        self.qb.rm_trackers_for_downloading(rm_trackers)
         self.qb.add_trackers_for_preferences(trackers)
         self.old_trackers = trackers
         logger.success("Trackers updated successfully.")

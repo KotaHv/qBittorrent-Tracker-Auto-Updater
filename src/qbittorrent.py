@@ -21,8 +21,14 @@ class qBittorrent:
     @retry
     def add_trackers_for_downloading(self, trackers: Iterable[str]):
         for torrent in self.client.torrents.info.downloading():
-            logger.debug(torrent.name)
+            logger.debug(f"{torrent.name} add trackers")
             torrent.add_trackers(urls=trackers)
+
+    @retry
+    def rm_trackers_for_downloading(self, trackers: Iterable[str]):
+        for torrent in self.client.torrents.info.downloading():
+            logger.debug(f"{torrent.name} remove trackers: {trackers}")
+            torrent.remove_trackers(urls=trackers)
 
     @retry
     def add_trackers_for_preferences(self, trackers: Iterable[str]):
