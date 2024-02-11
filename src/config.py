@@ -15,9 +15,8 @@ class MyEnvSettingsSource(EnvSettingsSource):
     def prepare_field_value(
         self, field_name: str, field: FieldInfo, value: Any, value_is_complex: bool
     ) -> Any:
-        if field_name in ["trackers", "trackers_url"]:
-            if value:
-                return value.splitlines()
+        if field_name in ["trackers", "trackers_url"] and value:
+            return value.split("\\n")
         return super().prepare_field_value(field_name, field, value, value_is_complex)
 
 
