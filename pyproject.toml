@@ -2,29 +2,12 @@
 name = "qbittorrent-tracker-auto-updater"
 version = "0.1.0"
 description = "qBittorrent Automatically Updates Trackers"
-authors = [
-    { name = "KotaHv", email = "92137267+KotaHv@users.noreply.github.com" },
-]
-dependencies = [
-    "qbittorrent-api>=2024.1.58",
-    "httpx>=0.26.0",
-    "loguru>=0.7.2",
-    "pydantic-settings>=2.1.0",
-    "pydantic>=2.6.1",
-]
 readme = "README.md"
-requires-python = ">= 3.8"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.rye]
-managed = true
-dev-dependencies = []
-
-[tool.hatch.metadata]
-allow-direct-references = true
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/qbittorrent_tracker_auto_updater"]
+requires-python = ">=3.12.1"
+dependencies = [
+    "httpx>=0.28.1",
+    "loguru>=0.7.3",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.14.2",
+    "qbittorrent-api>=2026.6.0",
+]
