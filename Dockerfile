@@ -6,9 +6,7 @@ FROM alpine:3.19 AS install
 
 RUN apk add --no-cache --update python3 py3-pip
 
-COPY requirements.lock .
-
-RUN sed '/-e/d' requirements.lock > requirements.txt
+COPY requirements.txt .
 
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 
