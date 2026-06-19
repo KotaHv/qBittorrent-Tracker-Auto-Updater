@@ -1,25 +1,48 @@
-FROM alpine:3.19 AS base
+FROM ghcr.io/astral-sh/uv:alpine AS builder
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
-RUN apk add --no-cache --update python3 tzdata
+# Omit development dependencies
+ENV UV_NO_DEV=1
 
-FROM alpine:3.19 AS install
+# Configure the Python directory so it is consistent
+ENV UV_PYTHON_INSTALL_DIR=/python
 
-RUN apk add --no-cache --update python3 py3-pip
+# Only use the managed Python version
+ENV UV_PYTHON_PREFERENCE=only-managed
 
-COPY requirements.txt .
+# Install Python before the project for caching
+RUN uv python install 3.12
 
-RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
+WORKDIR /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project
+COPY . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked
 
-RUN rm -rf /usr/lib/python3.11/site-packages/pip*
+FROM alpine:3.23
 
-RUN rm -rf /usr/lib/python3.11/site-packages/setuptools*
+RUN apk add --no-cache tzdata
 
-FROM base
+# Setup a non-root user
+RUN addgroup -S nonroot \
+ && adduser -S -G nonroot nonroot
 
-COPY --from=install /usr/lib/python3.11/site-packages /usr/lib/python3.11/site-packages
+COPY --from=builder /python /python
+
+COPY --from=builder --chown=nonroot:nonroot /app /app
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Keeps Python from buffering stdout and stderr to avoid situations where
+# the application crashes without emitting any logs due to buffering.
+ENV PYTHONUNBUFFERED=1
+
+# Use the non-root user to run our application
+USER nonroot
 
 WORKDIR /app
 
-COPY src/ .
-
-ENTRYPOINT ["python3", "main.py"]
+CMD ["python", "src/main.py"]
