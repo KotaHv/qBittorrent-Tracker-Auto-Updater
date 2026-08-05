@@ -1,3 +1,4 @@
+import time
 from typing import Iterable
 
 import qbittorrentapi
@@ -14,9 +15,17 @@ class qBittorrent:
         self.login()
         logger.success("qBittorrent authentication successful.")
 
-    @retry
     def login(self):
-        self.client.auth_log_in()
+        while True:
+            try:
+                self.client.auth_log_in()
+                return
+            except qbittorrentapi.exceptions.APIConnectionError as e:
+
+                if type(e) is not qbittorrentapi.exceptions.APIConnectionError:
+                    raise
+                logger.error(f"qBittorrent connection failed: {e}. Retrying in 60 seconds...")
+                time.sleep(60)
 
     @retry
     def add_trackers_for_downloading(self, trackers: Iterable[str]):
