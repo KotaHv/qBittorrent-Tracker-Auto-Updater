@@ -17,6 +17,7 @@ class qBittorrent:
         logger.success("qBittorrent authentication successful.")
 
     def login(self) -> None:
+        first_failure = True
         while True:
             try:
                 self.client.auth_log_in()
@@ -24,15 +25,20 @@ class qBittorrent:
             except APIConnectionError as e:
                 if type(e) is not APIConnectionError:
                     raise
-                logger.error(
+                message = (
                     f"qBittorrent connection failed: {e}. Retrying in 60 seconds..."
                 )
+                if first_failure:
+                    logger.error(message)
+                    first_failure = False
+                else:
+                    logger.debug(message)
                 time.sleep(60)
 
     @retry
     def add_trackers_for_downloading(self, trackers: Iterable[str]) -> None:
         for torrent in self.client.torrents.info.downloading():
-            logger.debug(f"{torrent.name} add trackers")
+            logger.debug(f"{torrent.name} add trackers: {trackers}")
             torrent.add_trackers(urls=trackers)
 
     @retry

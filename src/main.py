@@ -52,7 +52,7 @@ def main():
         try:
             tracker.run()
         except RetryError:
-            pass
+            logger.warning("Tracker update failed, will retry next cycle.")
         logger.debug(f"Wait {settings.interval} seconds.")
         sleep(settings.interval)
 

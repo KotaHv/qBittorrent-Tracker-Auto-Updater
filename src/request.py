@@ -1,4 +1,5 @@
 from httpx import Client, Response
+from loguru import logger
 
 from utils import retry
 
@@ -10,4 +11,6 @@ class Request:
     @retry
     def get(self, url: str) -> Response:
         res = self.client.get(url)
-        return res.raise_for_status()
+        res.raise_for_status()
+        logger.trace(f"{url}: {res.status_code}")
+        return res
