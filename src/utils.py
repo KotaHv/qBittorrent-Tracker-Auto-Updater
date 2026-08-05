@@ -1,33 +1,45 @@
 import time
+from collections.abc import Callable
 from functools import wraps
+from typing import overload
 
 from loguru import logger
 
-from exception import RetryError
 from config import settings
+from exception import RetryError
 
 
-def retry(_func=None, *, retry_count: int = 5):
-    def decorator(func):
+@overload
+def retry[**P, R](_func: Callable[P, R], *, retry_count: int = 5) -> Callable[P, R]: ...
+
+
+@overload
+def retry[**P, R](
+    _func: None = None, *, retry_count: int = 5
+) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+
+
+def retry[**P, R](_func: Callable[P, R] | None = None, *, retry_count: int = 5):
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
         backoff_factor = 2
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             wait_time = 1
             attempts = 0
             while True:
                 try:
                     return func(*args, **kwargs)
-                except Exception as e:
-                    e = f"{func.__module__}:{func.__qualname__} - {e}"
+                except Exception as e:  # noqa: BLE001 - retries must handle errors from arbitrary wrapped code
+                    err = f"{func.__module__}:{func.__qualname__} - {e}"
                     attempts += 1
                     if attempts >= retry_count:
                         if settings.debug:
-                            logger.exception(e)
+                            logger.exception(err)
                         else:
-                            logger.error(e)
-                        raise RetryError(e)
-                    logger.debug(e)
+                            logger.error(err)
+                        raise RetryError(err) from e
+                    logger.debug(err)
                     time.sleep(wait_time)
                     wait_time *= backoff_factor
 
@@ -35,5 +47,4 @@ def retry(_func=None, *, retry_count: int = 5):
 
     if _func is None:
         return decorator
-    else:
-        return decorator(_func)
+    return decorator(_func)

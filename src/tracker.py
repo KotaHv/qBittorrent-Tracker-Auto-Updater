@@ -1,5 +1,5 @@
 import re
-from typing import Iterable, List
+from collections.abc import Iterable
 
 from loguru import logger
 
@@ -17,7 +17,7 @@ class Tracker:
         username: str,
         password: str,
         trackers: Iterable[str],
-        trackers_url: List[str],
+        trackers_url: list[str],
     ) -> None:
         self.qb = qBittorrent(host=host, username=username, password=password)
         self.req = Request()
@@ -26,19 +26,19 @@ class Tracker:
         self.old_trackers = set(self.qb.get_trackers())
         logger.trace(f"Trackers cache: {self.old_trackers}")
 
-    def _get_trackers(self, url: str) -> List[str]:
+    def _get_trackers(self, url: str) -> list[str]:
         res = self.req.get(url)
         trackers = TRACKER_RE.split(res.text.strip())
         logger.trace(f"{url}: {trackers}")
         return trackers
 
-    def get_trackers(self) -> List[str]:
+    def get_trackers(self) -> list[str]:
         trackers = []
         for url in self.urls:
             trackers.extend(self._get_trackers(url))
         return trackers
 
-    def run(self):
+    def run(self) -> None:
         trackers = self.custom_trackers.copy()
         trackers.update(self.get_trackers())
         if trackers == self.old_trackers:
