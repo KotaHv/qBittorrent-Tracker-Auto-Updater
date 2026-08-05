@@ -30,10 +30,10 @@ def banner(title: str, version: str) -> str:
 
 
 setup_logger()
-if sys.stdout.isatty():
-    print(f"\033[36m{banner(APP_NAME, get_version())}\033[0m")
-else:
-    print(banner(APP_NAME, get_version()))
+banner_text = banner(APP_NAME, get_version())
+if sys.stderr.isatty():
+    banner_text = f"\033[36m{banner_text}\033[0m"
+print(banner_text, file=sys.stderr)
 logger.info("Tracker sources:")
 for url in settings.trackers_url:
     logger.info(f"  - {url}")
