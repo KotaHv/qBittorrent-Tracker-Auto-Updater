@@ -1,5 +1,6 @@
+import signal
 import sys
-from time import sleep
+from time import monotonic, sleep
 
 from loguru import logger
 
@@ -48,14 +49,37 @@ def main():
         trackers=settings.trackers,
         trackers_url=settings.trackers_url,
     )
-    while True:
+    stopping = False
+
+    def handle_sigint(_signum, _frame):
+        nonlocal stopping
+        if stopping:
+            raise KeyboardInterrupt
+        stopping = True
+
+    def wait_for_next_cycle() -> None:
+        deadline = monotonic() + settings.interval
+        while not stopping:
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                break
+            sleep(min(remaining, 0.5))
+
+    signal.signal(signal.SIGINT, handle_sigint)
+
+    while not stopping:
         try:
             tracker.run()
         except RetryError:
             logger.warning("Tracker update failed, will retry next cycle.")
-        logger.debug(f"Wait {settings.interval} seconds.")
-        sleep(settings.interval)
+        if not stopping:
+            logger.debug(f"Wait {settings.interval} seconds.")
+            wait_for_next_cycle()
+    logger.info("Received interrupt, shutting down gracefully.")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        logger.info("Forced exit.")
