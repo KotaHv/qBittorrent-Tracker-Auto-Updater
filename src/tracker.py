@@ -40,8 +40,9 @@ class Tracker:
         return trackers
 
     def run(self) -> None:
-        trackers = self.custom_trackers.copy()
-        trackers.update(self.get_trackers())
+        trackers = set(self.get_trackers())
+        trackers.update(self.custom_trackers)
+        trackers.discard("")
         if trackers == self.old_trackers:
             logger.debug("Trackers have not changed.")
             return

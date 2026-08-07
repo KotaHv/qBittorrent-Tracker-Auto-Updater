@@ -54,4 +54,4 @@ class qBittorrent:
     @retry
     def get_trackers(self) -> list[str]:
         preferences = self.client.app_preferences()
-        return preferences.add_trackers.split("\n")
+        return [t for t in preferences.add_trackers.split("\n") if t]
