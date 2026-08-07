@@ -5,8 +5,8 @@ from utils import retry
 
 
 class Request:
-    def __init__(self) -> None:
-        self.client = Client(headers={"user-agent": "Mozilla/5.0"})
+    def __init__(self, *, proxy: str | None = None) -> None:
+        self.client = Client(headers={"user-agent": "Mozilla/5.0"}, proxy=proxy)
 
     @retry
     def get(self, url: str) -> Response:

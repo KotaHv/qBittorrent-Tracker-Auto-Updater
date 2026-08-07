@@ -18,9 +18,10 @@ class Tracker:
         password: str,
         trackers: Iterable[str],
         trackers_url: list[str],
+        proxy: str | None = None,
     ) -> None:
         self.qb = qBittorrent(host=host, username=username, password=password)
-        self.req = Request()
+        self.req = Request(proxy=proxy)
         self.custom_trackers = set(trackers)
         self.urls = trackers_url
         self.old_trackers = set(self.qb.get_trackers())

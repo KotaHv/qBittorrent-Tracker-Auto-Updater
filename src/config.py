@@ -58,6 +58,7 @@ class Settings(BaseSettings):
         "https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/best.txt",
     ]
     trackers: Annotated[list[str], BeforeValidator(_normalize_trackers)] = []
+    proxy: AnyHttpUrl | None = None
     log_level: Annotated[
         Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"],
         BeforeValidator(lambda s: s.upper()),

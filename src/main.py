@@ -48,6 +48,7 @@ def main():
         username=settings.qb_username,
         trackers=settings.trackers,
         trackers_url=settings.trackers_url,
+        proxy=settings.proxy.unicode_string() if settings.proxy else None,
     )
     stopping = False
 

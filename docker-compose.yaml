@@ -10,6 +10,7 @@ services:
       - qb_host=host # Default: localhost:8080
       - qb_username=username # Default: admin
       - qb_password=pwd # Default: adminadmin
+      # - proxy=http://host:port # Optional: proxy for fetching tracker lists
       # - log_level=info
       # - interval=3600
     restart: always
