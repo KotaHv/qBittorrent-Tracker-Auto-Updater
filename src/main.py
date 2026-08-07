@@ -52,7 +52,7 @@ def main():
     )
     stopping = False
 
-    def handle_sigint(_signum, _frame):
+    def handle_signal(_signum, _frame):
         nonlocal stopping
         if stopping:
             raise KeyboardInterrupt
@@ -66,7 +66,10 @@ def main():
                 break
             sleep(min(remaining, 0.5))
 
-    signal.signal(signal.SIGINT, handle_sigint)
+    # Handle both Ctrl-C and Docker stop (SIGTERM): finish the current
+    # cycle, then exit at the next boundary.
+    signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
 
     while not stopping:
         try:
