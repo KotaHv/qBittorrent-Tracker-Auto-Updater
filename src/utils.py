@@ -30,7 +30,7 @@ def retry[**P, R](_func: Callable[P, R] | None = None, *, retry_count: int = 5):
             while True:
                 try:
                     return func(*args, **kwargs)
-                except Exception as e:  # noqa: BLE001 - retries must handle errors from arbitrary wrapped code
+                except Exception as e:
                     err = f"{func.__module__}:{func.__qualname__} - {e}"
                     attempts += 1
                     if attempts >= retry_count:
