@@ -6,7 +6,7 @@ from loguru import logger
 from qbittorrent import qBittorrent
 from request import Request
 
-TRACKER_RE = re.compile(r"\s+")
+TRACKER_URL_RE = re.compile(r"^(?:https?|udp|ws|wss)://\S+$", re.IGNORECASE)
 
 
 class Tracker:
@@ -29,7 +29,14 @@ class Tracker:
 
     def _get_trackers(self, url: str) -> list[str]:
         res = self.req.get(url)
-        trackers = TRACKER_RE.split(res.text.strip())
+        trackers = []
+        for line in res.text.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            for candidate in line.split():
+                if TRACKER_URL_RE.fullmatch(candidate):
+                    trackers.append(candidate)
         logger.trace(f"{url}: {trackers}")
         return trackers
 
