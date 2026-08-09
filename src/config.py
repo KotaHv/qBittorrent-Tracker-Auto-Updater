@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from pydantic import AnyHttpUrl, AnyUrl, BeforeValidator, SecretStr
@@ -68,6 +69,7 @@ class Settings(BaseSettings):
     qb_password: SecretStr = SecretStr("adminadmin")
 
     debug: bool = False
+    state_file: Path = Path("data/trackers_state.json")
 
     model_config = SettingsConfigDict(env_file=".env")
 

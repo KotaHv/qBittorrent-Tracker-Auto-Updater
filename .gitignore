@@ -10,3 +10,6 @@ wheels/
 .venv
 
 .env
+
+# local runtime data
+data/

@@ -14,9 +14,18 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pyright>=1.1.411",
+    "basedpyright>=1.39.9",
+    "pytest>=8.4",
     "ruff>=0.16.1",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.basedpyright]
+extraPaths = ["src"]
+typeCheckingMode = "standard"
 
 [tool.ruff.lint]
 ignore = [

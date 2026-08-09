@@ -5,8 +5,11 @@ from time import monotonic, sleep
 from loguru import logger
 
 from config import settings
-from exception import RetryError
+from exception import RetryError, SourceFetchError, StateSaveError
 from log import setup_logger
+from qbittorrent import qBittorrent
+from request import Request
+from storage import TrackerStateStore
 from tracker import Tracker
 from version import get_version
 
@@ -42,13 +45,19 @@ logger.debug(settings)
 
 
 def main():
-    tracker = Tracker(
+    qb = qBittorrent(
         host=settings.qb_host,
-        password=settings.qb_password.get_secret_value(),
         username=settings.qb_username,
+        password=settings.qb_password.get_secret_value(),
+    )
+    req = Request(proxy=settings.proxy.unicode_string() if settings.proxy else None)
+    store = TrackerStateStore(settings.state_file)
+    tracker = Tracker(
+        qb=qb,
+        req=req,
+        store=store,
         trackers=settings.trackers,
         trackers_url=settings.trackers_url,
-        proxy=settings.proxy.unicode_string() if settings.proxy else None,
     )
     stopping = False
 
@@ -71,11 +80,21 @@ def main():
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
 
+    if not store.load():
+        while not stopping:
+            try:
+                tracker.bootstrap()
+                break
+            except (RetryError, SourceFetchError, StateSaveError) as e:
+                logger.warning(f"Bootstrap failed: {e}; will retry next cycle.")
+            finally:
+                wait_for_next_cycle()
+
     while not stopping:
         try:
             tracker.run()
-        except RetryError:
-            logger.warning("Tracker update failed, will retry next cycle.")
+        except (RetryError, SourceFetchError, StateSaveError) as e:
+            logger.warning(f"Tracker update failed: {e}, will retry next cycle.")
         if not stopping:
             logger.debug(f"Wait {settings.interval} seconds.")
             wait_for_next_cycle()

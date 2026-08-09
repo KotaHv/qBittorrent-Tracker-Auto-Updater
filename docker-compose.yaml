@@ -13,6 +13,10 @@ services:
       # - proxy=http://host:port # Optional: proxy for fetching tracker lists
       # - log_level=info
       # - interval=3600
+      # state_file defaults to /app/data/trackers_state.json (inside the mounted ./data volume);
+      # uncomment to override
+      # - state_file=/app/data/trackers_state.json
     restart: always
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      - ./data:/app/data

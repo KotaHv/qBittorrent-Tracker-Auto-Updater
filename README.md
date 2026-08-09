@@ -16,6 +16,35 @@ All settings are read from environment variables or a `.env` file:
 | `qb_username`  | `admin` | qBittorrent username                               |
 | `qb_password`  | `adminadmin` | qBittorrent password                         |
 | `log_level`    | `INFO`  | Log level                                          |
+| `state_file`   | `data/trackers_state.json` | Path to the JSON state file keeping per-source tracker history |
+
+### State file
+
+The program persists per-source tracker history in a JSON file (`state_file`),
+which makes partial-source failures safe: a source that fails keeps its last
+successful list, so its trackers are never deleted by accident. When no valid
+state exists, the program bootstraps: it fetches every source (all must
+succeed) and adopts the current qBittorrent `add_trackers` preferences as the
+initial diff baseline. The state file is written atomically only after a
+successful update.
+
+In Docker, the compose example mounts `./data:/app/data`; with the default
+`state_file` (`data/trackers_state.json` relative to the working directory,
+i.e. `/app/data/trackers_state.json`), state survives container restarts
+without extra configuration. Override `state_file` to use a different path:
+
+```yaml
+volumes:
+  - ./data:/app/data
+```
+
+```dotenv
+state_file=/app/data/trackers_state.json
+```
+
+The directory must be writable by the container user; with a host bind mount
+adjust its permissions if needed (`chmod` the host `./data` directory). Locally,
+the `data/` directory is created automatically on the first successful update.
 
 ### Proxy
 
