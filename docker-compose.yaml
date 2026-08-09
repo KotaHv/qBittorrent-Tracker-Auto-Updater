@@ -6,7 +6,7 @@ services:
     container_name: qb-tracker-update
     environment:
       # - trackers=
-      # - trackers_url=https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt\nhttps://raw.githubusercontent.com/XIU2/TrackersListCollection/master/best.txt
+      # - tracker_sources=https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt\nhttps://raw.githubusercontent.com/XIU2/TrackersListCollection/master/best.txt
       - qb_host=host # Default: localhost:8080
       - qb_username=username # Default: admin
       - qb_password=pwd # Default: adminadmin

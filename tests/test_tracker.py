@@ -65,7 +65,7 @@ def make_tracker(
         req=cast(Request, req if req is not None else FakeRequest({})),
         store=store_obj,
         trackers=custom or [],
-        trackers_url=urls,
+        tracker_sources=urls,
     )
 
 

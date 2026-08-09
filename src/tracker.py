@@ -31,13 +31,13 @@ class Tracker:
         req: Request,
         store: TrackerStateStore,
         trackers: Iterable[str],
-        trackers_url: list[str],
+        tracker_sources: list[str],
     ) -> None:
         self.qb = qb
         self.req = req
         self.store = store
         self.custom_trackers = trackers
-        self.trackers_url = list(trackers_url)
+        self.tracker_sources = list(tracker_sources)
         logger.debug(
             f"Tracker state: sources={self.store.state.sources}, "
             f"last_committed={self.store.state.last_committed}"
@@ -77,13 +77,15 @@ class Tracker:
         instead of being collected as a failure.
         """
         results = {}
-        if not self.trackers_url:
+        if not self.tracker_sources:
             return results
-        max_workers = min(len(self.trackers_url), os.process_cpu_count() or 4)
+        max_workers = min(len(self.tracker_sources), os.process_cpu_count() or 4)
         pool = ThreadPoolExecutor(
             max_workers=max_workers, thread_name_prefix="tracker-fetch"
         )
-        futures = {pool.submit(self._fetch_one, url): url for url in self.trackers_url}
+        futures = {
+            pool.submit(self._fetch_one, url): url for url in self.tracker_sources
+        }
         try:
             for future in as_completed(futures):
                 result = future.result()
@@ -123,7 +125,7 @@ class Tracker:
             if t not in candidate:
                 candidate.append(t)
         new_sources: Sources = {}
-        for url in self.trackers_url:
+        for url in self.tracker_sources:
             result = results[url]
             trackers = result.trackers
             new_sources[url] = trackers
@@ -148,7 +150,7 @@ class Tracker:
             if t not in candidate:
                 candidate.append(t)
         new_sources: Sources = {}
-        for url in self.trackers_url:
+        for url in self.tracker_sources:
             result = results[url]
             if isinstance(result, FetchSuccess):
                 trackers = result.trackers

@@ -6,17 +6,22 @@ Automatically updates trackers for qBittorrent.
 
 All settings are read from environment variables or a `.env` file:
 
-| Variable       | Default | Description                                        |
-| -------------- | ------- | -------------------------------------------------- |
-| `interval`     | `3600`  | Update interval in seconds                         |
-| `trackers_url` | built-in sources | Newline-separated URLs of tracker lists to fetch |
-| `trackers`     | empty   | Newline-separated custom trackers                  |
-| `proxy`        | unset   | HTTP/HTTPS proxy used to fetch tracker lists       |
-| `qb_host`      | `localhost:8080` | qBittorrent WebUI host                      |
-| `qb_username`  | `admin` | qBittorrent username                               |
-| `qb_password`  | `adminadmin` | qBittorrent password                         |
-| `log_level`    | `INFO`  | Log level                                          |
-| `state_file`   | `data/trackers_state.json` | Path to the JSON state file keeping per-source tracker history |
+| Variable          | Default          | Description                                          |
+| ----------------- | ---------------- | ---------------------------------------------------- |
+| `interval`        | `3600`           | Update interval in seconds                           |
+| `tracker_sources` | built-in sources | Newline-separated URLs of tracker lists to fetch     |
+| `trackers`        | empty            | Newline-separated custom trackers                    |
+| `proxy`           | unset            | HTTP/HTTPS proxy used to fetch tracker lists         |
+| `qb_host`         | `localhost:8080` | qBittorrent WebUI host                               |
+| `qb_username`     | `admin`          | qBittorrent username                                 |
+| `qb_password`     | `adminadmin`     | qBittorrent password                                 |
+| `log_level`       | `INFO`           | Log level                                            |
+| `state_file`      | `data/trackers_state.json` | Path to the JSON state file keeping per-source tracker history |
+
+> `trackers_url` is deprecated and will be removed in a future release; use
+> `tracker_sources` instead. The old name still works for backward
+> compatibility, but a warning is printed when it is used. If both are set,
+> `tracker_sources` wins.
 
 ### State file
 

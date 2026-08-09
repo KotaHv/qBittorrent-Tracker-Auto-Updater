@@ -40,8 +40,8 @@ def show_startup_info() -> None:
         banner_text = f"\033[36m{banner_text}\033[0m"
     print(banner_text, file=sys.stderr)
     logger.info("Tracker sources:")
-    if settings.trackers_url:
-        for url in settings.trackers_url:
+    if settings.tracker_sources:
+        for url in settings.tracker_sources:
             logger.info(f"  - {url}")
     else:
         logger.info("  (none)")
@@ -58,6 +58,11 @@ def main():
     setup_logger()
     show_startup_info()
 
+    if settings.uses_deprecated_trackers_url:
+        logger.warning(
+            "The `trackers_url` setting is deprecated; use `tracker_sources` instead."
+        )
+
     qb = qBittorrent(
         host=settings.qb_host,
         username=settings.qb_username,
@@ -70,7 +75,7 @@ def main():
         req=req,
         store=store,
         trackers=settings.trackers,
-        trackers_url=settings.trackers_url,
+        tracker_sources=settings.tracker_sources,
     )
     stopping = False
 
