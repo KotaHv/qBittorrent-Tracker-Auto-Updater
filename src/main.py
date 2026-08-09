@@ -33,18 +33,31 @@ def banner(title: str, version: str) -> str:
     )
 
 
-setup_logger()
-banner_text = banner(APP_NAME, get_version())
-if sys.stderr.isatty():
-    banner_text = f"\033[36m{banner_text}\033[0m"
-print(banner_text, file=sys.stderr)
-logger.info("Tracker sources:")
-for url in settings.trackers_url:
-    logger.info(f"  - {url}")
-logger.debug(settings)
+def show_startup_info() -> None:
+    """Print the startup banner and log the configured tracker sources."""
+    banner_text = banner(APP_NAME, get_version())
+    if sys.stderr.isatty():
+        banner_text = f"\033[36m{banner_text}\033[0m"
+    print(banner_text, file=sys.stderr)
+    logger.info("Tracker sources:")
+    if settings.trackers_url:
+        for url in settings.trackers_url:
+            logger.info(f"  - {url}")
+    else:
+        logger.info("  (none)")
+    if settings.trackers:
+        logger.info("Custom trackers:")
+        for tracker in settings.trackers:
+            logger.info(f"  - {tracker}")
+    else:
+        logger.info("No custom trackers configured.")
+    logger.debug(settings)
 
 
 def main():
+    setup_logger()
+    show_startup_info()
+
     qb = qBittorrent(
         host=settings.qb_host,
         username=settings.qb_username,
