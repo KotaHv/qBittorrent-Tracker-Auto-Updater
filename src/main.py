@@ -136,14 +136,16 @@ def main():
                     break
                 except (RetryError, SourceFetchError, StateSaveError) as e:
                     logger.warning(f"Bootstrap failed: {e}; will retry next cycle.")
+                    store.load()
                 finally:
                     wait_for_next_cycle()
 
         while not stop_event.is_set():
             try:
                 tracker.run()
-            except (RetryError, SourceFetchError, StateSaveError) as e:
+            except (RetryError, StateSaveError) as e:
                 logger.warning(f"Tracker update failed: {e}, will retry next cycle.")
+                store.load()
             if not stop_event.is_set():
                 logger.debug(f"Wait {settings.interval} seconds.")
                 wait_for_next_cycle()
