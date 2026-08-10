@@ -32,6 +32,23 @@ def test_atomic_write_keeps_old_file_on_failure(tmp_path, monkeypatch):
     assert {p.name for p in tmp_path.iterdir()} == {"state.json"}
 
 
+def test_temp_file_creation_permission_error_is_wrapped(tmp_path, monkeypatch):
+    path = tmp_path / "state.json"
+    store = TrackerStateStore(path)
+    store.state.sources = {"u1": ["t1"]}
+    store.state.last_committed = ["t1"]
+
+    def deny(**_kwargs):
+        raise PermissionError("Permission denied")
+
+    monkeypatch.setattr("tempfile.NamedTemporaryFile", deny)
+    with pytest.raises(StateSaveError) as exc_info:
+        store.save()
+
+    assert isinstance(exc_info.value.__cause__, PermissionError)
+    assert {p.name for p in tmp_path.iterdir()} == set()
+
+
 def test_commit_updates_and_persists_state(tmp_path):
     path = tmp_path / "state.json"
     store = TrackerStateStore(path)

@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Use the same Python base as the builder so the venv's interpreter path matches
 FROM python:3.14-alpine3.23
 
-RUN apk add --no-cache tzdata
+RUN apk add --no-cache tzdata su-exec shadow tini
 
 # Setup a non-root user
 RUN addgroup -S nonroot \
@@ -28,15 +28,18 @@ RUN addgroup -S nonroot \
 
 COPY --from=builder --chown=nonroot:nonroot /app /app
 
-ENV PATH="/app/.venv/bin:$PATH"
-
-# Keeps Python from buffering stdout and stderr to avoid situations where
-# the application crashes without emitting any logs due to buffering.
-ENV PYTHONUNBUFFERED=1
-
-# Use the non-root user to run our application
-USER nonroot
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PUID=1000 \
+    PGID=1000 \
+    UMASK=022
 
 WORKDIR /app
+
+COPY --chmod=755 entrypoint.sh /entrypoint.sh
+
+ENTRYPOINT ["/sbin/tini", "-g", "--", "/entrypoint.sh"]
+
+VOLUME ["/app/data"]
 
 CMD ["python", "src/main.py"]

@@ -37,17 +37,18 @@ class TrackerStateStore:
 
     def save(self) -> None:
         """Durably persist ``self.state``: fsync temp file, atomic rename, fsync dir."""
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        payload = self.state.model_dump_json(indent=2)
-        temporary_file = tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            dir=self.path.parent,
-            prefix=f".{self.path.name}.",
-            delete=False,
-        )
-        temporary_path = Path(temporary_file.name)
+        temporary_path: Path | None = None
         try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            payload = self.state.model_dump_json(indent=2)
+            temporary_file = tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=self.path.parent,
+                prefix=f".{self.path.name}.",
+                delete=False,
+            )
+            temporary_path = Path(temporary_file.name)
             with temporary_file:
                 temporary_file.write(payload)
                 temporary_file.flush()
@@ -59,7 +60,8 @@ class TrackerStateStore:
             finally:
                 os.close(directory_fd)
         except Exception as e:
-            temporary_path.unlink(missing_ok=True)
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
             raise StateSaveError(f"Failed to save state to {self.path}: {e}") from e
 
     def commit(self, sources: Sources, last_committed: list[str]) -> None:

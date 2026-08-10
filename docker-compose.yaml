@@ -13,6 +13,9 @@ services:
       # - proxy=http://host:port # Optional: proxy for fetching tracker lists
       # - log_level=info
       # - interval=3600
+      # - PUID=1000 # Host user ID owning ./data; entrypoint remaps the container user to it
+      # - PGID=1000
+      # - UMASK=022
       # state_file defaults to /app/data/trackers_state.json (inside the mounted ./data volume);
       # uncomment to override
       # - state_file=/app/data/trackers_state.json
