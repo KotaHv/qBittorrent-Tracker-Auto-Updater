@@ -33,3 +33,12 @@ class QBLoginFailedError(QBitTorrentError):
 
 class QBConnectionError(QBitTorrentError):
     """Raised for any other non-transient qBittorrent connection failure."""
+
+
+class StopRequested(BaseException):
+    """Control-flow exception: a stop was requested and code must unwind now.
+
+    Raised on a second SIGINT/SIGTERM and by retry/login loops that notice the
+    stop flag. Inherits BaseException so broad ``except Exception`` handlers
+    cannot swallow it.
+    """

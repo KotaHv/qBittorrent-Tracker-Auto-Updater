@@ -1,6 +1,5 @@
-import signal
 import sys
-from time import monotonic, sleep
+from time import sleep
 
 from loguru import logger
 
@@ -10,6 +9,7 @@ from exception import (
     RetryError,
     SourceFetchError,
     StateSaveError,
+    StopRequested,
 )
 
 try:
@@ -21,8 +21,10 @@ except InvalidSettingsError as exc:
 from log import setup_logger
 from qbittorrent import qBittorrent
 from request import Request
+from stop import register_signal_handlers, stop_event
 from storage import TrackerStateStore
 from tracker import Tracker
+from utils import wait_for_next_cycle
 from version import get_version
 
 APP_NAME = "qBittorrent Tracker Auto Updater"
@@ -93,21 +95,10 @@ def main():
             "The `trackers_url` setting is deprecated; use `tracker_sources` instead."
         )
 
-    stopping = False
-
-    def handle_signal(_signum, _frame):
-        nonlocal stopping
-        if stopping:
-            raise KeyboardInterrupt
-        stopping = True
-
-    def wait_for_next_cycle() -> None:
-        deadline = monotonic() + settings.interval
-        while not stopping:
-            remaining = deadline - monotonic()
-            if remaining <= 0:
-                break
-            sleep(min(remaining, 0.5))
+    # Install the handler before connecting so a stop during startup (login
+    # retries) is graceful too, instead of leaving Docker to SIGKILL the
+    # container after its stop grace period.
+    register_signal_handlers()
 
     try:
         qb = qBittorrent(
@@ -115,14 +106,16 @@ def main():
             username=settings.qb_username,
             password=settings.qb_password.get_secret_value(),
         )
+    except StopRequested:
+        logger.info("Received interrupt, shutting down gracefully.")
+        return
     except QBitTorrentError as exc:
         log_fatal_qb_error(exc)
         # Stay alive so Docker's restart policy cannot restart-loop us; the
         # process only exits on SIGINT/SIGTERM, i.e. a deliberate restart.
-        signal.signal(signal.SIGINT, handle_signal)
-        signal.signal(signal.SIGTERM, handle_signal)
-        while not stopping:
+        while not stop_event.is_set():
             sleep(0.5)
+        logger.info("Received interrupt, shutting down gracefully.")
         return
 
     req = Request(proxy=settings.proxy.unicode_string() if settings.proxy else None)
@@ -135,34 +128,34 @@ def main():
         tracker_sources=settings.tracker_sources,
     )
 
-    # Handle both Ctrl-C and Docker stop (SIGTERM): finish the current
-    # cycle, then exit at the next boundary.
-    signal.signal(signal.SIGINT, handle_signal)
-    signal.signal(signal.SIGTERM, handle_signal)
+    try:
+        if not store.load():
+            while not stop_event.is_set():
+                try:
+                    tracker.bootstrap()
+                    break
+                except (RetryError, SourceFetchError, StateSaveError) as e:
+                    logger.warning(f"Bootstrap failed: {e}; will retry next cycle.")
+                finally:
+                    wait_for_next_cycle()
 
-    if not store.load():
-        while not stopping:
+        while not stop_event.is_set():
             try:
-                tracker.bootstrap()
-                break
+                tracker.run()
             except (RetryError, SourceFetchError, StateSaveError) as e:
-                logger.warning(f"Bootstrap failed: {e}; will retry next cycle.")
-            finally:
+                logger.warning(f"Tracker update failed: {e}, will retry next cycle.")
+            if not stop_event.is_set():
+                logger.debug(f"Wait {settings.interval} seconds.")
                 wait_for_next_cycle()
+    except StopRequested:
+        logger.info("Received interrupt, shutting down gracefully.")
+        return
 
-    while not stopping:
-        try:
-            tracker.run()
-        except (RetryError, SourceFetchError, StateSaveError) as e:
-            logger.warning(f"Tracker update failed: {e}, will retry next cycle.")
-        if not stopping:
-            logger.debug(f"Wait {settings.interval} seconds.")
-            wait_for_next_cycle()
     logger.info("Received interrupt, shutting down gracefully.")
 
 
 if __name__ == "__main__":
     try:
         main()
-    except KeyboardInterrupt:
+    except StopRequested:
         logger.info("Forced exit.")

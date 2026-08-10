@@ -12,7 +12,9 @@ from exception import (
     QBConnectionError,
     QBInvalidHostError,
     QBLoginFailedError,
+    StopRequested,
 )
+from stop import stop_event
 
 
 class _StopWaiting(Exception):
@@ -78,3 +80,31 @@ def test_connection_error_logs_guidance_and_waits_instead_of_exiting(
     stderr = capsys.readouterr().err
     assert "qBittorrent error" in stderr
     assert "will not retry" in stderr
+
+
+def test_stop_during_login_shuts_down_gracefully(monkeypatch, capsys):
+    class FakeQB:
+        def __init__(self, **kwargs) -> None:
+            raise StopRequested
+
+    monkeypatch.setattr(main_module, "qBittorrent", FakeQB)
+
+    main_module.main()
+
+    stderr = capsys.readouterr().err
+    assert "shutting down gracefully" in stderr
+
+
+def test_stop_during_fatal_wait_shuts_down_gracefully(monkeypatch, capsys):
+    class FakeQB:
+        def __init__(self, **kwargs) -> None:
+            raise QBConnectionError("boom")
+
+    monkeypatch.setattr(main_module, "qBittorrent", FakeQB)
+    monkeypatch.setattr(main_module, "sleep", lambda _seconds: stop_event.set())
+
+    main_module.main()
+
+    stderr = capsys.readouterr().err
+    assert "will not retry" in stderr
+    assert "shutting down gracefully" in stderr

@@ -1,4 +1,3 @@
-import time
 from collections.abc import Iterable
 
 import qbittorrentapi
@@ -6,7 +5,13 @@ from loguru import logger
 from qbittorrentapi.exceptions import APIConnectionError, LoginFailed
 from requests.exceptions import ConnectionError, InvalidURL
 
-from exception import QBConnectionError, QBInvalidHostError, QBLoginFailedError
+from exception import (
+    QBConnectionError,
+    QBInvalidHostError,
+    QBLoginFailedError,
+    StopRequested,
+)
+from stop import stop_event, wait_interruptibly
 from utils import retry
 
 
@@ -29,6 +34,8 @@ class qBittorrent:
         """
         first_failure = True
         while True:
+            if stop_event.is_set():
+                raise StopRequested
             try:
                 self.client.auth_log_in()
                 return
@@ -53,7 +60,7 @@ class qBittorrent:
                         first_failure = False
                     else:
                         logger.debug(message)
-                    time.sleep(60)
+                    wait_interruptibly(60)
                     continue
                 if isinstance(cause, InvalidURL):
                     raise QBInvalidHostError(

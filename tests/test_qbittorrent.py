@@ -1,5 +1,4 @@
 import os
-import time
 
 # Importing the qBittorrent wrapper pulls in `config`, whose module-level
 # settings singleton requires the qb_* credentials to be set.
@@ -15,8 +14,15 @@ from qbittorrentapi.exceptions import (
 )
 from requests.exceptions import ConnectionError, InvalidURL, RequestException, Timeout
 
-from exception import QBConnectionError, QBInvalidHostError, QBLoginFailedError
+import qbittorrent
+from exception import (
+    QBConnectionError,
+    QBInvalidHostError,
+    QBLoginFailedError,
+    StopRequested,
+)
 from qbittorrent import qBittorrent
+from stop import stop_event
 
 
 def wrapped(exc: RequestException) -> APIConnectionError:
@@ -55,7 +61,7 @@ def patch_client(monkeypatch, raise_queue: list[Exception]) -> None:
 
 def test_login_retries_connection_error_then_succeeds(monkeypatch):
     sleeps = []
-    monkeypatch.setattr(time, "sleep", sleeps.append)
+    monkeypatch.setattr(qbittorrent, "wait_interruptibly", sleeps.append)
     patch_client(
         monkeypatch,
         [wrapped(ConnectionError("refused")), wrapped(ConnectionError("refused"))],
@@ -64,6 +70,24 @@ def test_login_retries_connection_error_then_succeeds(monkeypatch):
     qBittorrent(host="http://localhost:8080", username="u", password="p")
 
     assert sleeps == [60, 60]
+
+
+def test_login_connection_error_stops_retrying_on_signal(monkeypatch):
+    sleeps = []
+
+    # A signal during the 60s backoff sets the stop flag; the retry loop must
+    # exit immediately instead of starting another connection attempt.
+    def sleep_and_signal(_seconds):
+        sleeps.append(_seconds)
+        stop_event.set()
+
+    monkeypatch.setattr(qbittorrent, "wait_interruptibly", sleep_and_signal)
+    patch_client(monkeypatch, [wrapped(ConnectionError("refused"))])
+
+    with pytest.raises(StopRequested):
+        qBittorrent(host="http://localhost:8080", username="u", password="p")
+
+    assert sleeps == [60]
 
 
 def test_login_invalid_url_is_fatal_and_explains_host():

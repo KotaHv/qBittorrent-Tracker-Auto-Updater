@@ -1,4 +1,3 @@
-import time
 from collections.abc import Callable
 from functools import wraps
 from typing import overload
@@ -6,7 +5,8 @@ from typing import overload
 from loguru import logger
 
 from config import settings
-from exception import RetryError
+from exception import RetryError, StopRequested
+from stop import stop_event, wait_interruptibly
 
 
 @overload
@@ -28,6 +28,8 @@ def retry[**P, R](_func: Callable[P, R] | None = None, *, retry_count: int = 5):
             wait_time = 1
             attempts = 0
             while True:
+                if stop_event.is_set():
+                    raise StopRequested
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
@@ -43,7 +45,7 @@ def retry[**P, R](_func: Callable[P, R] | None = None, *, retry_count: int = 5):
                         f"{err} (attempt {attempts}/{retry_count}, "
                         f"retrying in {wait_time}s)"
                     )
-                    time.sleep(wait_time)
+                    wait_interruptibly(wait_time)
                     wait_time *= backoff_factor
 
         return wrapper
@@ -51,3 +53,8 @@ def retry[**P, R](_func: Callable[P, R] | None = None, *, retry_count: int = 5):
     if _func is None:
         return decorator
     return decorator(_func)
+
+
+def wait_for_next_cycle() -> None:
+    """Wait for the next update cycle, returning early on SIGINT/SIGTERM."""
+    wait_interruptibly(settings.interval)
