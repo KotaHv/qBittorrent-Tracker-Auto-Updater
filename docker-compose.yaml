@@ -16,6 +16,10 @@ services:
       # state_file defaults to /app/data/trackers_state.json (inside the mounted ./data volume);
       # uncomment to override
       # - state_file=/app/data/trackers_state.json
+    # restart: always is safe: when the app cannot start because of a
+    # qBittorrent error (rejected login, bad host, connection problem) it stays
+    # alive and waits instead of exiting, so Docker cannot restart-loop and
+    # trigger qBittorrent's temporary IP ban.
     restart: always
     volumes:
       - /etc/localtime:/etc/localtime:ro

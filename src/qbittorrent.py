@@ -34,8 +34,9 @@ class qBittorrent:
                 return
             except LoginFailed as exc:
                 raise QBLoginFailedError(
-                    "qBittorrent login failed: check QB_USERNAME and QB_PASSWORD "
-                    "in your configuration."
+                    "qBittorrent login failed: QB_USERNAME / QB_PASSWORD may be "
+                    "incorrect, or this IP was temporarily banned after too many "
+                    "failed login attempts."
                 ) from exc
             except APIConnectionError as exc:
                 # The library re-raises inside its except block, so implicit

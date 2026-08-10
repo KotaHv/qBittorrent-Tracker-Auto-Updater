@@ -66,6 +66,24 @@ def show_startup_info() -> None:
     logger.debug(settings)
 
 
+def log_fatal_qb_error(exc: Exception) -> None:
+    """Explain a fatal qBittorrent startup error and why the app will not exit.
+
+    Exiting on a qBittorrent error is dangerous under Docker
+    ``restart: always``: the container restarts immediately and retries; for
+    rejected logins every restart is another failed attempt, and qBittorrent
+    eventually bans the IP. So instead of exiting we log the problem once and
+    wait for manual intervention.
+    """
+    logger.error(f"qBittorrent error: {exc}")
+    logger.error(
+        "The app will not retry or exit (a Docker restart loop would burn "
+        "through failed-login attempts until qBittorrent temporarily bans "
+        "this IP). Fix the qBittorrent connection or credentials, then "
+        "restart the container, e.g. `docker compose restart`."
+    )
+
+
 def main():
     setup_logger()
     show_startup_info()
@@ -75,20 +93,6 @@ def main():
             "The `trackers_url` setting is deprecated; use `tracker_sources` instead."
         )
 
-    qb = qBittorrent(
-        host=settings.qb_host.unicode_string(),
-        username=settings.qb_username,
-        password=settings.qb_password.get_secret_value(),
-    )
-    req = Request(proxy=settings.proxy.unicode_string() if settings.proxy else None)
-    store = TrackerStateStore(settings.state_file)
-    tracker = Tracker(
-        qb=qb,
-        req=req,
-        store=store,
-        trackers=settings.trackers,
-        tracker_sources=settings.tracker_sources,
-    )
     stopping = False
 
     def handle_signal(_signum, _frame):
@@ -104,6 +108,32 @@ def main():
             if remaining <= 0:
                 break
             sleep(min(remaining, 0.5))
+
+    try:
+        qb = qBittorrent(
+            host=settings.qb_host.unicode_string(),
+            username=settings.qb_username,
+            password=settings.qb_password.get_secret_value(),
+        )
+    except QBitTorrentError as exc:
+        log_fatal_qb_error(exc)
+        # Stay alive so Docker's restart policy cannot restart-loop us; the
+        # process only exits on SIGINT/SIGTERM, i.e. a deliberate restart.
+        signal.signal(signal.SIGINT, handle_signal)
+        signal.signal(signal.SIGTERM, handle_signal)
+        while not stopping:
+            sleep(0.5)
+        return
+
+    req = Request(proxy=settings.proxy.unicode_string() if settings.proxy else None)
+    store = TrackerStateStore(settings.state_file)
+    tracker = Tracker(
+        qb=qb,
+        req=req,
+        store=store,
+        trackers=settings.trackers,
+        tracker_sources=settings.tracker_sources,
+    )
 
     # Handle both Ctrl-C and Docker stop (SIGTERM): finish the current
     # cycle, then exit at the next boundary.
@@ -136,6 +166,3 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         logger.info("Forced exit.")
-    except QBitTorrentError as exc:
-        logger.error(f"qBittorrent error: {exc}")
-        sys.exit(1)

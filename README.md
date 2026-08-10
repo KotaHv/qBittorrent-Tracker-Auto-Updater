@@ -62,3 +62,25 @@ proxy=http://127.0.0.1:7890
 Only `http://` and `https://` proxy URLs are supported. The proxy is used for
 tracker list requests only; the connection to the qBittorrent WebUI is not
 proxied.
+
+## Troubleshooting
+
+### Login failed and the IP got banned
+
+qBittorrent temporarily bans an IP after too many failed WebUI logins
+(default: 5 failures, ban duration 1 hour). With `restart: always`, an app
+that exits on login failure would be restarted by Docker immediately, and
+each restart is another failed attempt — exactly how an IP ends up banned.
+
+The app therefore does **not** exit or retry when qBittorrent rejects the
+login: it logs the error once and stays alive until you intervene. Check
+`qb_username` / `qb_password` (or wait for the temporary ban to expire), then
+restart the container:
+
+```bash
+docker compose restart qb-tracker-update
+```
+
+The same applies to other qBittorrent startup errors (invalid host, connection
+problems): the app logs the error and waits instead of exiting, so Docker's
+restart policy cannot turn one bad configuration into a retry loop.
