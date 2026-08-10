@@ -1,15 +1,35 @@
-class RetryError(Exception):
+class AppError(Exception):
+    """Base class for all application errors."""
+
+
+class RetryError(AppError):
     pass
 
 
-class SourceFetchError(Exception):
+class SourceFetchError(AppError):
     """Raised when a strict fetch of all sources fails."""
 
 
-class StateSaveError(Exception):
+class StateSaveError(AppError):
     """Raised when persisting the state file fails."""
 
 
-class InvalidSettingsError(Exception):
+class InvalidSettingsError(AppError):
     """Raised when settings fail validation; the underlying pydantic
     ValidationError is never exposed to users."""
+
+
+class QBitTorrentError(AppError):
+    """Base class for fatal errors while talking to qBittorrent."""
+
+
+class QBInvalidHostError(QBitTorrentError):
+    """Raised when the qBittorrent host URL is malformed."""
+
+
+class QBLoginFailedError(QBitTorrentError):
+    """Raised when qBittorrent rejects the configured credentials."""
+
+
+class QBConnectionError(QBitTorrentError):
+    """Raised for any other non-transient qBittorrent connection failure."""

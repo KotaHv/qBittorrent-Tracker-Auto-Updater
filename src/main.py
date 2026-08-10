@@ -6,6 +6,7 @@ from loguru import logger
 
 from exception import (
     InvalidSettingsError,
+    QBitTorrentError,
     RetryError,
     SourceFetchError,
     StateSaveError,
@@ -135,3 +136,6 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         logger.info("Forced exit.")
+    except QBitTorrentError as exc:
+        logger.error(f"qBittorrent error: {exc}")
+        sys.exit(1)

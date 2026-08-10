@@ -3,8 +3,10 @@ from collections.abc import Iterable
 
 import qbittorrentapi
 from loguru import logger
-from qbittorrentapi.exceptions import APIConnectionError
+from qbittorrentapi.exceptions import APIConnectionError, LoginFailed
+from requests.exceptions import ConnectionError, InvalidURL
 
+from exception import QBConnectionError, QBInvalidHostError, QBLoginFailedError
 from utils import retry
 
 
@@ -17,23 +19,47 @@ class qBittorrent:
         logger.success("qBittorrent authentication successful.")
 
     def login(self) -> None:
+        """Log in, retrying only transient connection failures.
+
+        Raises:
+            QBInvalidHostError: the configured host URL is malformed.
+            QBLoginFailedError: qBittorrent rejected the credentials.
+            QBConnectionError: any other non-transient failure; the message
+                carries the full error so users can diagnose it themselves.
+        """
         first_failure = True
         while True:
             try:
                 self.client.auth_log_in()
                 return
-            except APIConnectionError as e:
-                if type(e) is not APIConnectionError:
-                    raise
-                message = (
-                    f"qBittorrent connection failed: {e}. Retrying in 60 seconds..."
-                )
-                if first_failure:
-                    logger.error(message)
-                    first_failure = False
-                else:
-                    logger.debug(message)
-                time.sleep(60)
+            except LoginFailed as exc:
+                raise QBLoginFailedError(
+                    "qBittorrent login failed: check QB_USERNAME and QB_PASSWORD "
+                    "in your configuration."
+                ) from exc
+            except APIConnectionError as exc:
+                # The library re-raises inside its except block, so implicit
+                # exception chaining puts the original requests failure in
+                # __context__ (not __cause__).
+                cause = exc.__context__
+                if isinstance(cause, ConnectionError):
+                    message = (
+                        f"qBittorrent connection failed: {exc}. "
+                        "Retrying in 60 seconds..."
+                    )
+                    if first_failure:
+                        logger.error(message)
+                        first_failure = False
+                    else:
+                        logger.debug(message)
+                    time.sleep(60)
+                    continue
+                if isinstance(cause, InvalidURL):
+                    raise QBInvalidHostError(
+                        "Invalid qBittorrent host (QB_HOST / qb_host): "
+                        f"{exc}. It must be a valid URL such as http://host:8080."
+                    ) from exc
+                raise QBConnectionError(f"qBittorrent error: {exc}") from exc
 
     @retry
     def add_trackers_for_downloading(self, trackers: Iterable[str]) -> None:
