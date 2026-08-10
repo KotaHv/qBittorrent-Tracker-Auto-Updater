@@ -7,9 +7,9 @@ services:
     environment:
       # - trackers=
       # - tracker_sources=https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt\nhttps://raw.githubusercontent.com/XIU2/TrackersListCollection/master/best.txt
-      - qb_host=host # Default: localhost:8080
-      - qb_username=username # Default: admin
-      - qb_password=pwd # Default: adminadmin
+      - qb_host=http://host:8080 # Required: qBittorrent WebUI URL (include http:// or https://)
+      - qb_username=username # Optional: leave empty if qBittorrent whitelists this IP
+      - qb_password=pwd # Optional: leave empty if qBittorrent whitelists this IP
       # - proxy=http://host:port # Optional: proxy for fetching tracker lists
       # - log_level=info
       # - interval=3600

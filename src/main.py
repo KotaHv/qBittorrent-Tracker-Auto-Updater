@@ -4,8 +4,19 @@ from time import monotonic, sleep
 
 from loguru import logger
 
-from config import settings
-from exception import RetryError, SourceFetchError, StateSaveError
+from exception import (
+    InvalidSettingsError,
+    RetryError,
+    SourceFetchError,
+    StateSaveError,
+)
+
+try:
+    from config import settings
+except InvalidSettingsError as exc:
+    print(f"Configuration error:\n{exc}", file=sys.stderr)
+    sys.exit(1)
+
 from log import setup_logger
 from qbittorrent import qBittorrent
 from request import Request
@@ -64,7 +75,7 @@ def main():
         )
 
     qb = qBittorrent(
-        host=settings.qb_host,
+        host=settings.qb_host.unicode_string(),
         username=settings.qb_username,
         password=settings.qb_password.get_secret_value(),
     )

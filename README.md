@@ -12,9 +12,9 @@ All settings are read from environment variables or a `.env` file:
 | `tracker_sources` | built-in sources | Newline-separated URLs of tracker lists to fetch     |
 | `trackers`        | empty            | Newline-separated custom trackers                    |
 | `proxy`           | unset            | HTTP/HTTPS proxy used to fetch tracker lists         |
-| `qb_host`         | `localhost:8080` | qBittorrent WebUI host                               |
-| `qb_username`     | `admin`          | qBittorrent username                                 |
-| `qb_password`     | `adminadmin`     | qBittorrent password                                 |
+| `qb_host`         | required         | qBittorrent WebUI URL, e.g. `http://host:8080`       |
+| `qb_username`     | empty            | qBittorrent username; leave empty if the WebUI whitelists this IP |
+| `qb_password`     | empty            | qBittorrent password; leave empty if the WebUI whitelists this IP |
 | `log_level`       | `INFO`           | Log level                                            |
 | `state_file`      | `data/trackers_state.json` | Path to the JSON state file keeping per-source tracker history |
 

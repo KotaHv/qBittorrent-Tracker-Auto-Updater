@@ -1,5 +1,12 @@
+import os
 import threading
 from typing import Any, cast
+
+# Importing the tracker stack pulls in `config`, whose module-level settings
+# singleton requires the qb_* credentials to be set.
+os.environ.setdefault("QB_HOST", "http://localhost:8080")
+os.environ.setdefault("QB_USERNAME", "admin")
+os.environ.setdefault("QB_PASSWORD", "adminadmin")
 
 import pytest
 

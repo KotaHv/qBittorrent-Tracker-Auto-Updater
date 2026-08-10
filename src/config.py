@@ -1,7 +1,16 @@
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
-from pydantic import AnyHttpUrl, AnyUrl, BeforeValidator, SecretStr, model_validator
+from pydantic import (
+    AnyHttpUrl,
+    AnyUrl,
+    BeforeValidator,
+    ModelWrapValidatorHandler,
+    SecretStr,
+    ValidationError,
+    ValidationInfo,
+    model_validator,
+)
 from pydantic.fields import FieldInfo
 from pydantic_settings import (
     BaseSettings,
@@ -10,6 +19,8 @@ from pydantic_settings import (
     PydanticBaseSettingsSource,
     SettingsConfigDict,
 )
+
+from exception import InvalidSettingsError
 
 DEFAULT_SOURCES = [
     "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt",
@@ -31,6 +42,15 @@ def _normalize_trackers(value: Any) -> list[str]:
     return _normalize_urls(value, AnyUrl)
 
 
+def _normalize_qb_host(value: Any) -> Any:
+    """Prepend a scheme so scheme-less hosts like ``host:port`` still validate."""
+    if isinstance(value, str):
+        value = value.strip()
+        if value and "://" not in value:
+            return f"http://{value}"
+    return value
+
+
 def _split_tracker_values(field_name: str, value: Any) -> list[str] | None:
     if (
         field_name in {"trackers", "trackers_url", "tracker_sources"}
@@ -39,6 +59,20 @@ def _split_tracker_values(field_name: str, value: Any) -> list[str] | None:
     ):
         return value.replace("\\n", "\n").splitlines()
     return None
+
+
+def _settings_validation_message(exc: ValidationError) -> str:
+    """Format pydantic validation errors into a user-friendly message."""
+    lines = []
+    for error in exc.errors():
+        field = ".".join(str(part) for part in error["loc"])
+        if error["type"] == "missing":
+            lines.append(
+                f"- {field}: required (set {field.upper()} via environment or `.env`)"
+            )
+        else:
+            lines.append(f"- {field}: {error['msg'].removesuffix('.')}")
+    return "Invalid settings:\n" + "\n".join(lines)
 
 
 class MyEnvSettingsSource(EnvSettingsSource):
@@ -73,14 +107,28 @@ class Settings(BaseSettings):
         Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"],
         BeforeValidator(lambda s: s.upper()),
     ] = "INFO"
-    qb_host: str = "localhost:8080"
-    qb_username: str = "admin"
-    qb_password: SecretStr = SecretStr("adminadmin")
+    qb_host: Annotated[AnyHttpUrl, BeforeValidator(_normalize_qb_host)]
+    qb_username: str = ""
+    qb_password: SecretStr = SecretStr("")
 
     debug: bool = False
     state_file: Path = Path("data/trackers_state.json")
 
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True)
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def _translate_validation_errors(
+        cls,
+        data: Any,
+        handler: ModelWrapValidatorHandler[Self],
+        _info: ValidationInfo,
+    ) -> Self:
+        """Never expose pydantic's ValidationError to users."""
+        try:
+            return handler(data)
+        except ValidationError as exc:
+            raise InvalidSettingsError(_settings_validation_message(exc)) from None
 
     @model_validator(mode="after")
     def _migrate_deprecated_trackers_url(self) -> Self:
@@ -115,4 +163,4 @@ class Settings(BaseSettings):
         )
 
 
-settings = Settings()
+settings = Settings.model_validate({})
