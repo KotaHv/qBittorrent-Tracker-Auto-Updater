@@ -111,10 +111,13 @@ class Settings(BaseSettings):
     qb_username: str = ""
     qb_password: SecretStr = SecretStr("")
 
-    debug: bool = False
     state_file: Path = Path("data/trackers_state.json")
 
-    model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_ignore_empty=True,
+        dotenv_filtering="only_existing",
+    )
 
     @model_validator(mode="wrap")
     @classmethod

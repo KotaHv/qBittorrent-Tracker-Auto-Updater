@@ -153,3 +153,15 @@ def test_tracker_sources_init_kwarg_wins_over_deprecated():
     )
 
     assert settings.tracker_sources == ["https://new.example.com/list"]
+
+
+def test_dotenv_ignores_unknown_keys(tmp_path):
+    """Stray keys in .env are ignored instead of failing startup."""
+    (tmp_path / ".env").write_text(
+        "interval=120\n"
+        "not_a_setting=hello\n"
+    )
+    settings = make_settings()
+
+    assert settings.interval == 120
+    assert not hasattr(settings, "not_a_setting")
