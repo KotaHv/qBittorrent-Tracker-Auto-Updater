@@ -15,6 +15,7 @@ All settings are read from environment variables or a `.env` file:
 | `qb_host`         | required         | qBittorrent WebUI URL, e.g. `http://host:8080`       |
 | `qb_username`     | empty            | qBittorrent username; leave empty if the WebUI whitelists this IP |
 | `qb_password`     | empty            | qBittorrent password; leave empty if the WebUI whitelists this IP |
+| `qb_api_key`      | empty            | qBittorrent API key (`qbt_...`, WebUI-generated, v5.2.0+); takes precedence over username/password |
 | `log_level`       | `INFO`           | Log level                                            |
 | `state_file`      | `data/trackers_state.json` | Path to the JSON state file keeping per-source tracker history |
 | `PUID`            | `1000`           | UID the container user is remapped to at startup; match it to the host user owning `./data` |

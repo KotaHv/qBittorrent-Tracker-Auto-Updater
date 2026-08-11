@@ -10,6 +10,7 @@ services:
       - qb_host=http://host:8080 # Required: qBittorrent WebUI URL (include http:// or https://)
       - qb_username=username # Optional: leave empty if qBittorrent whitelists this IP
       - qb_password=pwd # Optional: leave empty if qBittorrent whitelists this IP
+      # - qb_api_key=qbt_xxxx # Optional (v5.2.0+): takes precedence over username/password
       # - proxy=http://host:port # Optional: proxy for fetching tracker lists
       # - log_level=info
       # - interval=3600

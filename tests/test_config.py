@@ -69,11 +69,19 @@ def test_qb_settings_load_from_env(monkeypatch):
     monkeypatch.setenv("QB_HOST", "http://127.0.0.1:8080")
     monkeypatch.setenv("QB_USERNAME", "user")
     monkeypatch.setenv("QB_PASSWORD", "pass")
+    monkeypatch.setenv("QB_API_KEY", "qbt_secret")
     settings = Settings()  # type: ignore[reportCallIssue]
 
     assert settings.qb_host.unicode_string() == "http://127.0.0.1:8080/"
     assert settings.qb_username == "user"
     assert settings.qb_password.get_secret_value() == "pass"
+    assert settings.qb_api_key.get_secret_value() == "qbt_secret"
+
+
+def test_qb_api_key_defaults_to_empty():
+    settings = make_settings()
+
+    assert settings.qb_api_key.get_secret_value() == ""
 
 
 def test_qb_host_accepts_scheme_less_hosts(monkeypatch):

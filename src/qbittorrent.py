@@ -16,19 +16,33 @@ from utils import retry
 
 
 class qBittorrent:
-    def __init__(self, *, host: str, username: str, password: str) -> None:
+    def __init__(
+        self,
+        *,
+        host: str,
+        username: str = "",
+        password: str = "",
+        api_key: str | None = None,
+    ) -> None:
+        self.api_key = api_key
         self.client = qbittorrentapi.Client(
-            host=host, username=username, password=password
+            host=host,
+            username=username,
+            password=password,
+            api_key=api_key or None,
         )
         self.login()
         logger.success("qBittorrent authentication successful.")
 
     def login(self) -> None:
-        """Log in, retrying only transient connection failures.
+        """Authenticate, retrying only transient connection failures.
+
+        With an API key (qBittorrent v5.2.0+) the library skips the cookie-based
+        login flow and validates the key instead.
 
         Raises:
             QBInvalidHostError: the configured host URL is malformed.
-            QBLoginFailedError: qBittorrent rejected the credentials.
+            QBLoginFailedError: qBittorrent rejected the credentials/API key.
             QBConnectionError: any other non-transient failure; the message
                 carries the full error so users can diagnose it themselves.
         """
@@ -40,6 +54,12 @@ class qBittorrent:
                 self.client.auth_log_in()
                 return
             except LoginFailed as exc:
+                if self.api_key:
+                    raise QBLoginFailedError(
+                        "qBittorrent login failed: QB_API_KEY may be invalid or "
+                        "expired, or the qBittorrent version does not support "
+                        "API keys (v5.2.0+)."
+                    ) from exc
                 raise QBLoginFailedError(
                     "qBittorrent login failed: QB_USERNAME / QB_PASSWORD may be "
                     "incorrect, or this IP was temporarily banned after too many "

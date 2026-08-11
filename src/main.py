@@ -105,6 +105,7 @@ def main():
             host=settings.qb_host.unicode_string(),
             username=settings.qb_username,
             password=settings.qb_password.get_secret_value(),
+            api_key=settings.qb_api_key.get_secret_value() or None,
         )
     except StopRequested:
         logger.info("Received interrupt, shutting down gracefully.")

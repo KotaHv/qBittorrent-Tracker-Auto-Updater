@@ -110,6 +110,7 @@ class Settings(BaseSettings):
     qb_host: Annotated[AnyHttpUrl, BeforeValidator(_normalize_qb_host)]
     qb_username: str = ""
     qb_password: SecretStr = SecretStr("")
+    qb_api_key: SecretStr = SecretStr("")
 
     state_file: Path = Path("data/trackers_state.json")
 

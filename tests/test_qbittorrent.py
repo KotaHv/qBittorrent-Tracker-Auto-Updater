@@ -43,10 +43,18 @@ def client_raising(raise_queue: list[Exception]):
     """A qBittorrent Client stand-in that pops the next failure from the queue."""
 
     class FakeClient:
-        def __init__(self, *, host: str, username: str, password: str) -> None:
+        def __init__(
+            self,
+            *,
+            host: str,
+            username: str | None,
+            password: str | None,
+            api_key: str | None = None,
+        ) -> None:
             self.host = host
             self.username = username
             self.password = password
+            self.api_key = api_key
 
         def auth_log_in(self) -> None:
             if raise_queue:
@@ -116,5 +124,37 @@ def test_login_other_wrapped_error_is_fatal(monkeypatch):
 
     with pytest.raises(QBConnectionError) as err:
         qBittorrent(host="http://localhost:8080", username="u", password="p")
+
+    assert err.value.__cause__ is exc
+
+
+def test_api_key_is_passed_to_client(monkeypatch):
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, **kwargs) -> None:
+            captured.update(kwargs)
+
+        def auth_log_in(self) -> None:
+            pass
+
+    monkeypatch.setattr(qbittorrentapi, "Client", FakeClient)
+
+    qBittorrent(host="http://localhost:8080", api_key="qbt_secret")
+
+    assert captured == {
+        "host": "http://localhost:8080",
+        "username": "",
+        "password": "",
+        "api_key": "qbt_secret",
+    }
+
+
+def test_api_key_login_failure_explains_key(monkeypatch):
+    exc = LoginFailed()
+    patch_client(monkeypatch, [exc])
+
+    with pytest.raises(QBLoginFailedError, match="QB_API_KEY") as err:
+        qBittorrent(host="http://localhost:8080", api_key="qbt_secret")
 
     assert err.value.__cause__ is exc
