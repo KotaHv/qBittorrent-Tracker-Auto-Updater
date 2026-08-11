@@ -10,6 +10,8 @@ import pytest
 import qbittorrentapi
 from qbittorrentapi.exceptions import (
     APIConnectionError,
+    Forbidden403Error,
+    InternalServerError500Error,
     LoginFailed,
 )
 from requests.exceptions import ConnectionError, InvalidURL, RequestException, Timeout
@@ -118,11 +120,31 @@ def test_login_failed_is_fatal_and_explains_credentials(monkeypatch):
     assert err.value.__cause__ is exc
 
 
+def test_login_forbidden_is_fatal_and_explains_ban(monkeypatch):
+    exc = Forbidden403Error()
+    patch_client(monkeypatch, [exc])
+
+    with pytest.raises(QBLoginFailedError, match="banned") as err:
+        qBittorrent(host="http://localhost:8080", username="u", password="p")
+
+    assert err.value.__cause__ is exc
+
+
 def test_login_other_wrapped_error_is_fatal(monkeypatch):
     exc = wrapped(Timeout("timed out"))
     patch_client(monkeypatch, [exc])
 
     with pytest.raises(QBConnectionError) as err:
+        qBittorrent(host="http://localhost:8080", username="u", password="p")
+
+    assert err.value.__cause__ is exc
+
+
+def test_login_http_server_error_explains_status(monkeypatch):
+    exc = InternalServerError500Error("Internal Server Error")
+    patch_client(monkeypatch, [exc])
+
+    with pytest.raises(QBConnectionError, match="HTTP 500") as err:
         qBittorrent(host="http://localhost:8080", username="u", password="p")
 
     assert err.value.__cause__ is exc

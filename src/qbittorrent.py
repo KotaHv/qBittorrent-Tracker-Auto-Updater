@@ -2,7 +2,12 @@ from collections.abc import Iterable
 
 import qbittorrentapi
 from loguru import logger
-from qbittorrentapi.exceptions import APIConnectionError, LoginFailed
+from qbittorrentapi.exceptions import (
+    APIConnectionError,
+    HTTP403Error,
+    HTTPError,
+    LoginFailed,
+)
 from requests.exceptions import ConnectionError, InvalidURL
 
 from exception import (
@@ -62,8 +67,13 @@ class qBittorrent:
                     ) from exc
                 raise QBLoginFailedError(
                     "qBittorrent login failed: QB_USERNAME / QB_PASSWORD may be "
-                    "incorrect, or this IP was temporarily banned after too many "
-                    "failed login attempts."
+                    "incorrect, or this IP was temporarily banned after too "
+                    "many failed login attempts."
+                ) from exc
+            except HTTP403Error as exc:
+                reason = str(exc).strip() or "this IP may be temporarily banned"
+                raise QBLoginFailedError(
+                    f"qBittorrent login failed (HTTP 403): {reason}"
                 ) from exc
             except APIConnectionError as exc:
                 # The library re-raises inside its except block, so implicit
@@ -72,7 +82,7 @@ class qBittorrent:
                 cause = exc.__context__
                 if isinstance(cause, ConnectionError):
                     message = (
-                        f"qBittorrent connection failed: {exc}. "
+                        f"qBittorrent connection failed: {cause}. "
                         "Retrying in 60 seconds..."
                     )
                     if first_failure:
@@ -87,7 +97,12 @@ class qBittorrent:
                         "Invalid qBittorrent host (QB_HOST / qb_host): "
                         f"{exc}. It must be a valid URL such as http://host:8080."
                     ) from exc
-                raise QBConnectionError(f"qBittorrent error: {exc}") from exc
+                if isinstance(exc, HTTPError):
+                    reason = str(exc).strip() or "unknown error"
+                    raise QBConnectionError(
+                        f"qBittorrent returned HTTP {exc.http_status_code}: {reason}"
+                    ) from exc
+                raise QBConnectionError(str(exc)) from exc
 
     @retry
     def add_trackers_for_downloading(self, trackers: Iterable[str]) -> None:

@@ -18,14 +18,14 @@ from stop import stop_event
 
 
 class _StopWaiting(Exception):
-    """Break main()'s indefinite wait-for-intervention loop on the first sleep."""
+    """Break main()'s indefinite wait-for-intervention loop on the first wait."""
 
 
-def patch_sleep_to_stop_wait(monkeypatch) -> None:
-    def stop_waiting(_seconds):
+def patch_stop_wait_to_raise(monkeypatch) -> None:
+    def stop_waiting():
         raise _StopWaiting
 
-    monkeypatch.setattr(main_module, "sleep", stop_waiting)
+    monkeypatch.setattr(stop_event, "wait", stop_waiting)
 
 
 def test_login_failed_logs_guidance_and_waits_instead_of_exiting(
@@ -36,13 +36,13 @@ def test_login_failed_logs_guidance_and_waits_instead_of_exiting(
             raise QBLoginFailedError("boom")
 
     monkeypatch.setattr(main_module, "qBittorrent", FakeQB)
-    patch_sleep_to_stop_wait(monkeypatch)
+    patch_stop_wait_to_raise(monkeypatch)
 
     with pytest.raises(_StopWaiting):
         main_module.main()
 
     stderr = capsys.readouterr().err
-    assert "qBittorrent error" in stderr
+    assert "boom" in stderr
     assert "will not retry" in stderr
     assert "docker compose restart" in stderr
 
@@ -55,7 +55,7 @@ def test_invalid_host_logs_guidance_and_waits_instead_of_exiting(
             raise QBInvalidHostError("boom")
 
     monkeypatch.setattr(main_module, "qBittorrent", FakeQB)
-    patch_sleep_to_stop_wait(monkeypatch)
+    patch_stop_wait_to_raise(monkeypatch)
 
     with pytest.raises(_StopWaiting):
         main_module.main()
@@ -72,13 +72,13 @@ def test_connection_error_logs_guidance_and_waits_instead_of_exiting(
             raise QBConnectionError("boom")
 
     monkeypatch.setattr(main_module, "qBittorrent", FakeQB)
-    patch_sleep_to_stop_wait(monkeypatch)
+    patch_stop_wait_to_raise(monkeypatch)
 
     with pytest.raises(_StopWaiting):
         main_module.main()
 
     stderr = capsys.readouterr().err
-    assert "qBittorrent error" in stderr
+    assert "boom" in stderr
     assert "will not retry" in stderr
 
 
@@ -101,10 +101,39 @@ def test_stop_during_fatal_wait_shuts_down_gracefully(monkeypatch, capsys):
             raise QBConnectionError("boom")
 
     monkeypatch.setattr(main_module, "qBittorrent", FakeQB)
-    monkeypatch.setattr(main_module, "sleep", lambda _seconds: stop_event.set())
+    monkeypatch.setattr(stop_event, "wait", lambda: None)
 
     main_module.main()
 
     stderr = capsys.readouterr().err
+    assert "will not retry" in stderr
+    assert "shutting down gracefully" in stderr
+
+
+def test_runtime_auth_failure_logs_guidance_and_waits(monkeypatch, capsys):
+    class FakeQB:
+        def __init__(self, **kwargs) -> None:
+            pass
+
+    class FakeStore:
+        def load(self) -> bool:
+            return True
+
+    class FakeTracker:
+        def __init__(self, **kwargs) -> None:
+            pass
+
+        def run(self) -> None:
+            raise QBLoginFailedError("credentials rejected at runtime")
+
+    monkeypatch.setattr(main_module, "qBittorrent", FakeQB)
+    monkeypatch.setattr(main_module, "TrackerStateStore", lambda _path: FakeStore())
+    monkeypatch.setattr(main_module, "Tracker", FakeTracker)
+    monkeypatch.setattr(stop_event, "wait", lambda: None)
+
+    main_module.main()
+
+    stderr = capsys.readouterr().err
+    assert "credentials rejected at runtime" in stderr
     assert "will not retry" in stderr
     assert "shutting down gracefully" in stderr

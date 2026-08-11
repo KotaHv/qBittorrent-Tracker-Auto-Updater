@@ -1,11 +1,11 @@
 import sys
-from time import sleep
 
 from loguru import logger
 
 from exception import (
     InvalidSettingsError,
     QBitTorrentError,
+    QBLoginFailedError,
     RetryError,
     SourceFetchError,
     StateSaveError,
@@ -24,7 +24,7 @@ from request import Request
 from stop import register_signal_handlers, stop_event
 from storage import TrackerStateStore
 from tracker import Tracker
-from utils import wait_for_next_cycle
+from utils import handle_fatal_qb_error, wait_for_next_cycle
 from version import get_version
 
 APP_NAME = "qBittorrent Tracker Auto Updater"
@@ -68,24 +68,6 @@ def show_startup_info() -> None:
     logger.debug(settings)
 
 
-def log_fatal_qb_error(exc: Exception) -> None:
-    """Explain a fatal qBittorrent startup error and why the app will not exit.
-
-    Exiting on a qBittorrent error is dangerous under Docker
-    ``restart: always``: the container restarts immediately and retries; for
-    rejected logins every restart is another failed attempt, and qBittorrent
-    eventually bans the IP. So instead of exiting we log the problem once and
-    wait for manual intervention.
-    """
-    logger.error(f"qBittorrent error: {exc}")
-    logger.error(
-        "The app will not retry or exit (a Docker restart loop would burn "
-        "through failed-login attempts until qBittorrent temporarily bans "
-        "this IP). Fix the qBittorrent connection or credentials, then "
-        "restart the container, e.g. `docker compose restart`."
-    )
-
-
 def main():
     setup_logger()
     show_startup_info()
@@ -111,12 +93,7 @@ def main():
         logger.info("Received interrupt, shutting down gracefully.")
         return
     except QBitTorrentError as exc:
-        log_fatal_qb_error(exc)
-        # Stay alive so Docker's restart policy cannot restart-loop us; the
-        # process only exits on SIGINT/SIGTERM, i.e. a deliberate restart.
-        while not stop_event.is_set():
-            sleep(0.5)
-        logger.info("Received interrupt, shutting down gracefully.")
+        handle_fatal_qb_error(exc)
         return
 
     req = Request(proxy=settings.proxy.unicode_string() if settings.proxy else None)
@@ -135,6 +112,9 @@ def main():
                 try:
                     tracker.bootstrap()
                     break
+                except QBLoginFailedError as exc:
+                    handle_fatal_qb_error(exc)
+                    return
                 except (RetryError, SourceFetchError, StateSaveError) as e:
                     logger.warning(f"Bootstrap failed: {e}; will retry next cycle.")
                     store.load()
@@ -144,6 +124,9 @@ def main():
         while not stop_event.is_set():
             try:
                 tracker.run()
+            except QBLoginFailedError as exc:
+                handle_fatal_qb_error(exc)
+                return
             except (RetryError, StateSaveError) as e:
                 logger.warning(f"Tracker update failed: {e}, will retry next cycle.")
                 store.load()
