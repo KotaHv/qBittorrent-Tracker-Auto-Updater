@@ -136,6 +136,8 @@ def main():
     except StopRequested:
         logger.info("Received interrupt, shutting down gracefully.")
         return
+    finally:
+        qb.logout()
 
     logger.info("Received interrupt, shutting down gracefully.")
 

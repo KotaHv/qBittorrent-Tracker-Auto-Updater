@@ -104,6 +104,19 @@ class qBittorrent:
                     ) from exc
                 raise QBConnectionError(str(exc)) from exc
 
+    def logout(self) -> None:
+        """Invalidate the qBittorrent session on shutdown.
+
+        Best-effort cleanup: a failed logout (e.g. qBittorrent is already
+        unreachable during shutdown) must not break the graceful exit, so
+        errors are logged and swallowed.
+        """
+        try:
+            self.client.auth_log_out()
+            logger.success("qBittorrent logout successful.")
+        except Exception as exc:
+            logger.debug(f"qBittorrent logout failed: {exc}")
+
     @retry
     def add_trackers_for_downloading(self, trackers: Iterable[str]) -> None:
         for torrent in self.client.torrents.info.downloading():

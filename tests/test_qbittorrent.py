@@ -180,3 +180,41 @@ def test_api_key_login_failure_explains_key(monkeypatch):
         qBittorrent(host="http://localhost:8080", api_key="qbt_secret")
 
     assert err.value.__cause__ is exc
+
+
+def test_logout_calls_auth_log_out(monkeypatch):
+    logged_out = []
+
+    class FakeClient:
+        def __init__(self, **kwargs) -> None:
+            pass
+
+        def auth_log_in(self) -> None:
+            pass
+
+        def auth_log_out(self) -> None:
+            logged_out.append(True)
+
+    monkeypatch.setattr(qbittorrentapi, "Client", FakeClient)
+
+    qb = qBittorrent(host="http://localhost:8080", username="u", password="p")
+    qb.logout()
+
+    assert logged_out == [True]
+
+
+def test_logout_swallows_connection_failure(monkeypatch):
+    class FakeClient:
+        def __init__(self, **kwargs) -> None:
+            pass
+
+        def auth_log_in(self) -> None:
+            pass
+
+        def auth_log_out(self) -> None:
+            raise wrapped(ConnectionError("refused"))
+
+    monkeypatch.setattr(qbittorrentapi, "Client", FakeClient)
+
+    qb = qBittorrent(host="http://localhost:8080", username="u", password="p")
+    qb.logout()  # must not raise

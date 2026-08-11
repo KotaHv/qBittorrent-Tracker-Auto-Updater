@@ -115,6 +115,9 @@ def test_runtime_auth_failure_logs_guidance_and_waits(monkeypatch, capsys):
         def __init__(self, **kwargs) -> None:
             pass
 
+        def logout(self) -> None:
+            pass
+
     class FakeStore:
         def load(self) -> bool:
             return True
@@ -137,3 +140,33 @@ def test_runtime_auth_failure_logs_guidance_and_waits(monkeypatch, capsys):
     assert "credentials rejected at runtime" in stderr
     assert "will not retry" in stderr
     assert "shutting down gracefully" in stderr
+
+
+def test_logout_called_on_graceful_shutdown(monkeypatch):
+    logged_out = []
+
+    class FakeQB:
+        def __init__(self, **kwargs) -> None:
+            pass
+
+        def logout(self) -> None:
+            logged_out.append(True)
+
+    class FakeStore:
+        def load(self) -> bool:
+            return True
+
+    class FakeTracker:
+        def __init__(self, **kwargs) -> None:
+            pass
+
+        def run(self) -> None:
+            stop_event.set()
+
+    monkeypatch.setattr(main_module, "qBittorrent", FakeQB)
+    monkeypatch.setattr(main_module, "TrackerStateStore", lambda _path: FakeStore())
+    monkeypatch.setattr(main_module, "Tracker", FakeTracker)
+
+    main_module.main()
+
+    assert logged_out == [True]
