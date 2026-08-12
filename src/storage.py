@@ -24,15 +24,17 @@ class TrackerStateStore:
                 self.path.read_text(encoding="utf-8")
             )
         except FileNotFoundError:
-            logger.info(f"No state file at {self.path}; starting empty.")
+            logger.info("No state file at {}; starting empty.", self.path)
             return False
         except ValidationError as e:
             logger.warning(
-                f"Invalid state file {self.path}: {e}; backing up and rebuilding."
+                "Invalid state file {}: {}; backing up and rebuilding.",
+                self.path,
+                e,
             )
             self._backup()
             return False
-        logger.info(f"Loaded tracker state from {self.path}.")
+        logger.info("Loaded tracker state from {}.", self.path)
         return True
 
     def save(self) -> None:
@@ -77,6 +79,6 @@ class TrackerStateStore:
         )
         try:
             os.replace(self.path, backup)
-            logger.warning(f"Backed up invalid state file to {backup}.")
+            logger.warning("Backed up invalid state file to {}.", backup)
         except OSError as e:
-            logger.error(f"Failed to back up state file {self.path}: {e}.")
+            logger.error("Failed to back up state file {}: {}.", self.path, e)

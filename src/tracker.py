@@ -39,8 +39,9 @@ class Tracker:
         self.custom_trackers = trackers
         self.tracker_sources = list(tracker_sources)
         logger.debug(
-            f"Tracker state: sources={self.store.state.sources}, "
-            f"last_committed={self.store.state.last_committed}"
+            "Tracker state: sources={}, last_committed={}",
+            self.store.state.sources,
+            self.store.state.last_committed,
         )
 
     def _get_trackers(self, url: str) -> Trackers:
@@ -53,14 +54,14 @@ class Tracker:
             for candidate in line.split():
                 if TRACKER_URL_RE.fullmatch(candidate):
                     trackers.append(candidate)
-        logger.trace(f"{url}: {trackers}")
+        logger.trace("{}: {}", url, trackers)
         return trackers
 
     def _fetch_one(self, url: str) -> FetchResult:
         try:
             trackers = self._get_trackers(url)
         except RetryError as e:
-            logger.warning(f"Failed to fetch tracker source {url}: {e}")
+            logger.warning("Failed to fetch tracker source {}: {}", url, e)
             return FetchFailure(url=url)
         return FetchSuccess(url=url, trackers=trackers)
 
@@ -108,10 +109,10 @@ class Tracker:
     ) -> None:
         """Apply the diff to qBittorrent: add, remove, then update preferences."""
         if add_trackers:
-            logger.success(f"Add trackers: {add_trackers}")
+            logger.success("Add trackers: {}", add_trackers)
             self.qb.add_trackers_for_downloading(add_trackers)
         if rm_trackers:
-            logger.success(f"Delete trackers: {rm_trackers}")
+            logger.success("Delete trackers: {}", rm_trackers)
             self.qb.rm_trackers_for_downloading(rm_trackers)
 
         self.qb.add_trackers_for_preferences(candidate)

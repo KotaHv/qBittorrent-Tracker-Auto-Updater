@@ -56,13 +56,13 @@ def show_startup_info() -> None:
     logger.info("Tracker sources:")
     if settings.tracker_sources:
         for url in settings.tracker_sources:
-            logger.info(f"  - {url}")
+            logger.info("  - {}", url)
     else:
         logger.info("  (none)")
     if settings.trackers:
         logger.info("Custom trackers:")
         for tracker in settings.trackers:
-            logger.info(f"  - {tracker}")
+            logger.info("  - {}", tracker)
     else:
         logger.info("No custom trackers configured.")
     logger.debug(settings)
@@ -116,7 +116,7 @@ def main():
                     handle_fatal_qb_error(exc)
                     return
                 except (RetryError, SourceFetchError, StateSaveError) as e:
-                    logger.warning(f"Bootstrap failed: {e}; will retry next cycle.")
+                    logger.warning("Bootstrap failed: {}; will retry next cycle.", e)
                     store.load()
                 finally:
                     wait_for_next_cycle()
@@ -128,10 +128,10 @@ def main():
                 handle_fatal_qb_error(exc)
                 return
             except (RetryError, StateSaveError) as e:
-                logger.warning(f"Tracker update failed: {e}, will retry next cycle.")
+                logger.warning("Tracker update failed: {}, will retry next cycle.", e)
                 store.load()
             if not stop_event.is_set():
-                logger.debug(f"Wait {settings.interval} seconds.")
+                logger.debug("Wait {} seconds.", settings.interval)
                 wait_for_next_cycle()
     except StopRequested:
         logger.info("Received interrupt, shutting down gracefully.")

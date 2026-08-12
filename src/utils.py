@@ -59,8 +59,11 @@ def retry[**P, R](_func: Callable[P, R] | None = None, *, retry_count: int = 5):
                     if attempts >= retry_count:
                         raise RetryError(err) from e
                     logger.debug(
-                        f"{err} (attempt {attempts}/{retry_count}, "
-                        f"retrying in {wait_time}s)"
+                        "{} (attempt {}/{}, retrying in {}s)",
+                        err,
+                        attempts,
+                        retry_count,
+                        wait_time,
                     )
                     wait_interruptibly(wait_time)
                     wait_time *= backoff_factor

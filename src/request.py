@@ -12,5 +12,5 @@ class Request:
     def get(self, url: str) -> Response:
         res = self.client.get(url)
         res.raise_for_status()
-        logger.trace(f"{url}: {res.status_code}")
+        logger.trace("{}: {}", url, res.status_code)
         return res

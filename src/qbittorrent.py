@@ -115,18 +115,18 @@ class qBittorrent:
             self.client.auth_log_out()
             logger.success("qBittorrent logout successful.")
         except Exception as exc:
-            logger.debug(f"qBittorrent logout failed: {exc}")
+            logger.debug("qBittorrent logout failed: {}", exc)
 
     @retry
     def add_trackers_for_downloading(self, trackers: Iterable[str]) -> None:
         for torrent in self.client.torrents.info.downloading():
-            logger.debug(f"{torrent.name} add trackers: {trackers}")
+            logger.debug("{} add trackers: {}", torrent.name, trackers)
             torrent.add_trackers(urls=trackers)
 
     @retry
     def rm_trackers_for_downloading(self, trackers: Iterable[str]) -> None:
         for torrent in self.client.torrents.info.downloading():
-            logger.debug(f"{torrent.name} remove trackers: {trackers}")
+            logger.debug("{} remove trackers: {}", torrent.name, trackers)
             torrent.remove_trackers(urls=trackers)
 
     @retry
